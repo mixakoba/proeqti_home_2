@@ -1,5 +1,6 @@
 from rest_framework import serializers
-from products.models import Review, Product
+from products.models import Review, Product,Cart,ProductTag,FavoriteProduct
+from users.models import User
 
 
 class ProductSerializer(serializers.Serializer):
@@ -38,3 +39,58 @@ class ReviewSerializer(serializers.Serializer):
         )
         return review
     
+class CartSerializer(serializers.ModelSerializer):
+    product_name=serializers.CharField(source='product.name',read_only=True)
+
+    class Meta:
+        model=Cart
+        fields=['id', 'product', 'product_name', 'quantity']
+
+    def validate_quantity(self,value):
+        if value<=0:
+            raise serializers.ValidationError("quantity must be a positive integer")
+        return value
+
+    def validate_product(self,value):
+        try:
+            product=Product.objects.get(id=value.id)
+        except Product.DoesNotExist:
+            raise serializers.ValidationError("product does not exist")
+        return value
+    
+class ProductTagSerializer(serializers.ModelSerializer):
+    class Meta:
+        model=ProductTag
+        fields=['id','product','tag_name']
+
+    def validate_tag_name(self, value):
+        product_id=self.initial_data.get('product_id')
+        if ProductTag.objects.filter(product_id=product_id, tag_name=value).exists():
+            raise serializers.ValidationError("this tag already exist for this product.")
+        return value
+
+    def validate_product(self, value):
+        try:
+            product=Product.objects.get(id=value.id)
+        except Product.DoesNotExist:
+            raise serializers.ValidationError("product does not exist")
+        return value
+    
+class FavoriteProductSerializer(serializers.ModelSerializer):
+    class Meta:
+        model=FavoriteProduct
+        fields=['id','user','product']
+
+    def validate_product(self, value):
+        try:
+            product=Product.objects.get(id=value.id)
+        except Product.DoesNotExist:
+            raise serializers.ValidationError("product does not exist")
+        return value
+
+    def validate_user(self, value):
+        try:
+            user=User.objects.get(id=value.id)
+        except User.DoesNotExist:
+            raise serializers.ValidationError("user does not exist")
+        return value
