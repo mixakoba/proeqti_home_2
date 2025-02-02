@@ -5,38 +5,27 @@ from rest_framework.permissions import IsAuthenticated
 from products.models import Product,Review,Cart,ProductTag,FavoriteProduct
 from products.serializers import ProductSerializer,ReviewSerializer,CartSerializer,ProductTagSerializer,FavoriteProductSerializer
 from django.contrib.auth.models import User
+from django.shortcuts import get_object_or_404
 
 
 @api_view(['GET', 'POST'])
 def product_view(request):
     if request.method == 'GET':
         products = Product.objects.all()
-        product_list = []
-        
-        for product in products:
-            product_data = {
-                'id': product.id,
-                'name': product.name,
-                'description': product.description,
-                'price': product.price,
-                'currency': product.currency,
-            }
-            product_list.append(product_data)
-
-        return Response({'products': product_list})
+        serializer=ProductSerializer(products,many=True)
+        return Response(serializer.data)
     elif request.method == "POST":
-        data = request.data
-        serializer = ProductSerializer(data)
+        serializer=ProductSerializer(data=request.data)
         if serializer.is_valid():
-            new_product = Product.objects.create(
-                name=data.get('name'),
-                description=data.get('description'),
-                price=data.get('price'),
-                currency=data.get('currency', 'GEL')  
-            )
-            return Response({'id': new_product.id}, status=status.HTTP_201_CREATED)
-        else:
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            product=serializer.save()
+            return Response({"id":product.id},status=status.HTTP_201_CREATED)
+        return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(["GET"])
+def get_product(request,pk):
+    product=get_object_or_404(Product,pk=pk)
+    serializer=ProductSerializer(product)
+    return Response(serializer.data) 
 
 
 @api_view(['GET', 'POST'])
@@ -56,7 +45,7 @@ def review_view(request):
         
         return Response({'reviews': review_list})
 
-    elif request.method == 'POST':
+    elif request.method=='POST':
         serializer = ReviewSerializer(data=request.data, context={"request":request})
         if serializer.is_valid():
             review = serializer.save()

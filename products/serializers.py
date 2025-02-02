@@ -3,19 +3,18 @@ from products.models import Review, Product,Cart,ProductTag,FavoriteProduct
 from users.models import User
 
 
-class ProductSerializer(serializers.Serializer):
-    name = serializers.CharField()
-    description = serializers.CharField()
-    price = serializers.FloatField()
-    currency = serializers.ChoiceField(choices=['GEL', 'USD', 'EUR'])
+class ProductSerializer(serializers.ModelSerializer):
+    class Meta:
+        model=Product
+        exclude=['created_at','updated_at','tags']
 
 
-class ReviewSerializer(serializers.Serializer):
-    product_id = serializers.IntegerField(write_only=True)
-    content = serializers.CharField()
-    rating = serializers.IntegerField()
+class ReviewSerializer(serializers.ModelSerializer):
+    class Meta:
+        model=Review
+        exclude=['created_at','updated_at']
 
-    def validate_product_id(self, value):
+    def validate_product_id(self,value):
         try:
             Product.objects.get(id=value)
         except Product.DoesNotExist:
@@ -23,7 +22,7 @@ class ReviewSerializer(serializers.Serializer):
         return value
 
     def validate_rating(self, value):
-        if value < 1 or value > 5:
+        if value<1 or value>5:
             raise serializers.ValidationError("Rating must be between 1 and 5.")
         return value
 
