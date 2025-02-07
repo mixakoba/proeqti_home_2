@@ -1,35 +1,56 @@
-from rest_framework.decorators import api_view,permission_classes
+from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.views import APIView
 from products.models import Product,Review,Cart,ProductTag,FavoriteProduct
 from products.serializers import ProductSerializer,ReviewSerializer,CartSerializer,ProductTagSerializer,FavoriteProductSerializer
 from django.contrib.auth.models import User
 from django.shortcuts import get_object_or_404
 
 
-@api_view(['GET', 'POST'])
-def product_view(request):
-    if request.method == 'GET':
-        products = Product.objects.all()
+class ProductListCreateView(APIView):
+    def get(self,request):
+        products=Product.objects.all()
         serializer=ProductSerializer(products,many=True)
         return Response(serializer.data)
-    elif request.method == "POST":
+    
+    def post(self,request):
         serializer=ProductSerializer(data=request.data)
         if serializer.is_valid():
             product=serializer.save()
             return Response({"id":product.id},status=status.HTTP_201_CREATED)
         return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
 
-@api_view(["GET"])
-def get_product(request,pk):
-    product=get_object_or_404(Product,pk=pk)
-    serializer=ProductSerializer(product)
-    return Response(serializer.data) 
+class ProductDetailUpdateView(APIView):
+    def get(self,request,pk):
+        obj=get_object_or_404(Product,pk=pk)
+        serializer=ProductSerializer(obj)
+        return Response(serializer.data)
+    
+    def patch(self,request,pk):
+        obj=get_object_or_404(Product,pk=pk)
+        serializer=ProductSerializer(obj,data=request.data,partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
+    
+    def put(self,request,pk):
+        obj=get_object_or_404(Product,pk=pk)
+        serializer=ProductSerializer(obj,data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
+    
+    def delete(self,request,pk):
+        obj=get_object_or_404(Product,pk=pk)
+        obj.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)   
 
 
 @api_view(['GET', 'POST'])
-def review_view(request):
+def reviews_view(request):
     if request.method == 'GET':
         reviews = Review.objects.all()
         review_list = []
